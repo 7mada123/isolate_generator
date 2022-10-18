@@ -1,4 +1,6 @@
 // ignore: depend_on_referenced_packages
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:isolate_generator_annotation/isolate_generator_annotation.dart';
@@ -9,7 +11,8 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
   String generateForAnnotatedElement(
       Element element, ConstantReader annotation, BuildStep buildStep) {
     if (element is! ClassElement) {
-      throw Exception('expected ClassElement, found ${element.runtimeType}');
+      throw Exception(redError(
+          'expected ClassElement, found ${element.runtimeType}\n${StackTrace.current}'));
     }
 
     final ClassElement classElement = element;
@@ -102,7 +105,7 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     final initMethod = classElement.methods.firstWhere(
       (element) => element.name == "init",
       orElse: () => throw Exception(
-        "init method not found\nStackTrace.current",
+        redError('init method not found\n${StackTrace.current}'),
       ),
     );
 
@@ -128,7 +131,7 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     // class elements warping
     for (var method in classElement.methods) {
       if (!method.returnType.isDartAsyncFuture) {
-        throw Exception("${method.name} is not a Future");
+        throw Exception(redError("${method.name} is not a Future"));
       }
 
       if (method.name == 'init' || method.name.startsWith('_')) continue;
@@ -197,5 +200,9 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     }
 
     return arg;
+  }
+
+  String redError(String msg) {
+    return '\x1B[31m$msg\x1B[0m';
   }
 }

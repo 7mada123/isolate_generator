@@ -16,9 +16,9 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
 
     final classBuffer = StringBuffer();
 
-    _writeIsolateEntryPoint(classBuffer, classElement);
-
     _writeIsolateWarperClass(classBuffer, classElement);
+
+    _writeIsolateEntryPoint(classBuffer, classElement);
 
     return classBuffer.toString();
   }
@@ -28,7 +28,7 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     final ClassElement classElement,
   ) {
     classBuffer.writeln(
-      'Future<void> _isolateEntry(final SendPort sendPort) async {',
+      'Future<void> _isolateEntry(final List<dynamic> message) async {',
     );
     classBuffer.writeln('final ReceivePort port = ReceivePort();');
     // TODO
@@ -37,10 +37,22 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
       'final ${classElement.name} instance = ${classElement.name}();',
     );
 
-    classBuffer.writeln('await instance.init();');
+    final initMethod = classElement.methods.firstWhere(
+      (element) => element.name == "init",
+    );
+
+    String initArg = "";
+    int messageIndex = 1;
+
+    for (var par in initMethod.parameters) {
+      initArg +=
+          "${par.isNamed ? '${par.name}: ' : ''}message[${messageIndex++}],";
+    }
+
+    classBuffer.writeln('await instance.init($initArg);');
 
     // ///////////////////
-    classBuffer.writeln('sendPort.send(port.sendPort);');
+    classBuffer.writeln('message[0].send(port.sendPort);');
 
     // handeling functions inside the isolate
     classBuffer.writeln('port.listen((final message) async {');
@@ -51,7 +63,7 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     classBuffer.writeln('switch (key) {');
 
     for (var method in classElement.methods) {
-      if (method.name == 'init') continue;
+      if (method.name == 'init' || method.name.startsWith('_')) continue;
 
       String arg = "";
       int messageIndex = 2;
@@ -88,17 +100,28 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     final StringBuffer classBuffer,
     final ClassElement classElement,
   ) {
-    classBuffer.writeln('class ${classElement.name}Isolate {');
+    classBuffer.writeln(
+        'class ${classElement.name}Isolate extends ${classElement.name}{');
 
     classBuffer.writeln('late final SendPort sender;');
 
     // init isloate
-    classBuffer.writeln('Future<void> init() async {');
+    classBuffer.writeln('@override');
+    // TODO input || message
+
+    final initMethod = classElement.methods.firstWhere(
+      (element) => element.name == "init",
+    );
+
+    final String initArg = functionParameters(initMethod);
+
+    classBuffer.writeln('Future<void> init($initArg) async {');
 
     classBuffer.writeln('final ReceivePort receivePort = ReceivePort();');
-    classBuffer.writeln('await Isolate.spawn<SendPort>(');
+    classBuffer.writeln('await Isolate.spawn<List<dynamic>>(');
     classBuffer.writeln('_isolateEntry,');
-    classBuffer.writeln('receivePort.sendPort,');
+    // TODO send list
+    classBuffer.writeln('[receivePort.sendPort,]');
     classBuffer.writeln(');');
     classBuffer.writeln('sender = await receivePort.first;');
     classBuffer.writeln('receivePort.close();');
@@ -108,29 +131,23 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
 
     // class elements warping
     for (var method in classElement.methods) {
-      if (method.name == 'init') continue;
+      if (!method.returnType.isDartAsyncFuture) {
+        throw Exception("${method.name} is not a Future");
+      }
 
-      String arg = "", argToPass = "'${method.name}',receivePort.sendPort,";
+      if (method.name == 'init' || method.name.startsWith('_')) continue;
 
-      bool hasRequired = false;
+      String argToPass = "'${method.name}',receivePort.sendPort,";
 
       for (var par in method.parameters) {
-        if (par.isNamed && par.isRequired && !hasRequired) {
-          hasRequired = true;
-          arg += '{';
-        }
-
-        arg += par.isNamed
-            ? "${par.isRequired ? 'required ' : ''}${par.type} ${par.name},"
-            : "${par.type} ${par.name},";
-
         argToPass += "${par.name},";
       }
 
-      if (hasRequired) arg += '}';
+      final arg = functionParameters(method);
 
+      classBuffer.writeln('@override');
       classBuffer.writeln(
-        '${method.returnType.isDartAsyncFuture ? method.returnType : "Future<${method.returnType}>"} ${method.name}($arg) async {',
+        '${method.returnType} ${method.name}($arg) async {',
       );
 
       classBuffer.writeln('final receivePort = ReceivePort();');
@@ -151,5 +168,24 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     }
 
     classBuffer.writeln('}');
+  }
+
+  String functionParameters(final MethodElement methodElement) {
+    String arg = "";
+    bool hasNamed = false;
+
+    for (var par in methodElement.parameters) {
+      if (par.isNamed && !hasNamed) {
+        hasNamed = true;
+        arg += "{";
+      }
+
+      arg +=
+          "${(hasNamed && par.isRequired) ? 'required ' : ''}${par.type} ${par.name}${par.hasDefaultValue ? ' = ${par.defaultValueCode}' : ''},";
+    }
+
+    if (hasNamed) arg += "}";
+
+    return arg;
   }
 }

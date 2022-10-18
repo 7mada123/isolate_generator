@@ -16,9 +16,11 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
 
     final classBuffer = StringBuffer();
 
-    _writeIsolateWarperClass(classBuffer, classElement);
+    final String isolateFuncName = "_${classElement.name}Isolate".toLowerCase();
 
-    _writeIsolateEntryPoint(classBuffer, classElement);
+    _writeIsolateWarperClass(classBuffer, classElement, isolateFuncName);
+
+    _writeIsolateEntryPoint(classBuffer, classElement, isolateFuncName);
 
     return classBuffer.toString();
   }
@@ -26,12 +28,12 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
   void _writeIsolateEntryPoint(
     final StringBuffer classBuffer,
     final ClassElement classElement,
+    final String isolateFuncName,
   ) {
     classBuffer.writeln(
-      'Future<void> _isolateEntry(final List<dynamic> message) async {',
+      'Future<void> $isolateFuncName(final List<dynamic> message) async {',
     );
     classBuffer.writeln('final ReceivePort port = ReceivePort();');
-    // TODO
     // logic before sending the port
     classBuffer.writeln(
       'final ${classElement.name} instance = ${classElement.name}();',
@@ -41,13 +43,7 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
       (element) => element.name == "init",
     );
 
-    String initArg = "";
-    int messageIndex = 1;
-
-    for (var par in initMethod.parameters) {
-      initArg +=
-          "${par.isNamed ? '${par.name}: ' : ''}message[${messageIndex++}],";
-    }
+    final String initArg = functionParametersValue(initMethod, 1);
 
     classBuffer.writeln('await instance.init($initArg);');
 
@@ -65,15 +61,8 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     for (var method in classElement.methods) {
       if (method.name == 'init' || method.name.startsWith('_')) continue;
 
-      String arg = "";
-      int messageIndex = 2;
       final bool isFuncVoid = method.returnType.toString().contains('void');
-
-      for (var par in method.parameters) {
-        arg += par.isNamed
-            ? "${par.name}:message[${messageIndex++}],"
-            : "message[${messageIndex++}],";
-      }
+      final String arg = functionParametersValue(method, 2);
 
       classBuffer.writeln("case '${method.name}':");
       classBuffer.writeln(
@@ -99,29 +88,36 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
   void _writeIsolateWarperClass(
     final StringBuffer classBuffer,
     final ClassElement classElement,
+    final String isolateFuncName,
   ) {
     classBuffer.writeln(
-        'class ${classElement.name}Isolate extends ${classElement.name}{');
+      'class ${classElement.name}Isolate extends ${classElement.name}{',
+    );
 
     classBuffer.writeln('late final SendPort sender;');
 
     // init isloate
     classBuffer.writeln('@override');
-    // TODO input || message
 
     final initMethod = classElement.methods.firstWhere(
       (element) => element.name == "init",
+      orElse: () => throw Exception(
+        "init method not found\nStackTrace.current",
+      ),
     );
 
     final String initArg = functionParameters(initMethod);
+
+    String initArgList = '';
+
+    for (var par in initMethod.parameters) initArgList += '${par.name},';
 
     classBuffer.writeln('Future<void> init($initArg) async {');
 
     classBuffer.writeln('final ReceivePort receivePort = ReceivePort();');
     classBuffer.writeln('await Isolate.spawn<List<dynamic>>(');
-    classBuffer.writeln('_isolateEntry,');
-    // TODO send list
-    classBuffer.writeln('[receivePort.sendPort,]');
+    classBuffer.writeln('$isolateFuncName,');
+    classBuffer.writeln('[receivePort.sendPort,$initArgList]');
     classBuffer.writeln(');');
     classBuffer.writeln('sender = await receivePort.first;');
     classBuffer.writeln('receivePort.close();');
@@ -170,11 +166,12 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     classBuffer.writeln('}');
   }
 
-  String functionParameters(final MethodElement methodElement) {
+  // copy the function input params, same as the ClassElement method
+  String functionParameters(final MethodElement method) {
     String arg = "";
     bool hasNamed = false;
 
-    for (var par in methodElement.parameters) {
+    for (var par in method.parameters) {
       if (par.isNamed && !hasNamed) {
         hasNamed = true;
         arg += "{";
@@ -185,6 +182,19 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
     }
 
     if (hasNamed) arg += "}";
+
+    return arg;
+  }
+
+  // getting the function params values
+  String functionParametersValue(final MethodElement method, int messageIndex) {
+    String arg = "";
+
+    for (var par in method.parameters) {
+      arg += par.isNamed
+          ? "${par.name}:message[${messageIndex++}],"
+          : "message[${messageIndex++}],";
+    }
 
     return arg;
   }

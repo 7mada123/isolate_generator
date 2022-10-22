@@ -1,4 +1,3 @@
-// ignore: depend_on_referenced_packages
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'package:analyzer/dart/element/element.dart';
@@ -11,8 +10,13 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
   String generateForAnnotatedElement(
       Element element, ConstantReader annotation, BuildStep buildStep) {
     if (element is! ClassElement) {
-      throw Exception(redError(
-          'expected ClassElement, found ${element.runtimeType}\n${StackTrace.current}'));
+      throw InvalidGenerationSourceError(
+        redError(
+          'expected ClassElement, found ${element.runtimeType}\n${StackTrace.current}',
+        ),
+        element: element,
+        todo: "only classes can be notated with `generateIsolate`",
+      );
     }
 
     final ClassElement classElement = element;
@@ -104,8 +108,10 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
 
     final initMethod = classElement.methods.firstWhere(
       (element) => element.name == "init",
-      orElse: () => throw Exception(
+      orElse: () => throw InvalidGenerationSourceError(
         redError('init method not found\n${StackTrace.current}'),
+        todo:
+            "provide `init` function to initialize the isolate even if the main class don't need initialization",
       ),
     );
 
@@ -133,7 +139,10 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
       if (method.name == 'init' || method.name.startsWith('_')) continue;
 
       if (!method.returnType.isDartAsyncFuture) {
-        throw Exception(redError("${method.name} is not a Future"));
+        throw InvalidGenerationSourceError(
+            redError("${method.name} is not a Future"),
+            element: method,
+            todo: "change the return type to Future");
       }
 
       String argToPass = "'${method.name}',receivePort.sendPort,";

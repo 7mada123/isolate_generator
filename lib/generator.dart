@@ -130,11 +130,11 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
 
     // class elements warping
     for (var method in classElement.methods) {
+      if (method.name == 'init' || method.name.startsWith('_')) continue;
+
       if (!method.returnType.isDartAsyncFuture) {
         throw Exception(redError("${method.name} is not a Future"));
       }
-
-      if (method.name == 'init' || method.name.startsWith('_')) continue;
 
       String argToPass = "'${method.name}',receivePort.sendPort,";
 

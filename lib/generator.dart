@@ -9,7 +9,7 @@ import './helpers.dart';
 import './isolate_entry_point.dart';
 import './isolate_wraper_class.dart';
 
-class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
+class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
   @override
   String generateForAnnotatedElement(
       Element element, ConstantReader annotation, BuildStep buildStep) {
@@ -23,13 +23,22 @@ class IsolateGenerator extends GeneratorForAnnotation<IsolateAnnotation> {
       );
     }
 
+    final bool isSameType = annotation.read("isSameType").boolValue;
+    final bool crossIsolates = annotation.read("crossIsolates").boolValue;
+
     final ClassElement classElement = element;
 
     final classBuffer = StringBuffer();
 
     final String isolateFuncName = "_${classElement.name}Isolate".toLowerCase();
 
-    writeIsolateWarperClass(classBuffer, classElement, isolateFuncName);
+    writeIsolateWarperClass(
+      classBuffer,
+      classElement,
+      isolateFuncName,
+      isSameType,
+      crossIsolates,
+    );
 
     writeIsolateEntryPoint(classBuffer, classElement, isolateFuncName);
 

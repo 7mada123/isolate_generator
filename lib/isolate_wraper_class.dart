@@ -9,16 +9,18 @@ void writeIsolateWarperClass(
   final StringBuffer classBuffer,
   final ClassElement classElement,
   final String isolateFuncName,
+  final bool isSameType,
+  final bool crossIsolates,
 ) {
   classBuffer.writeln(
-    'class ${classElement.name}Isolate extends ${classElement.name}{',
+    'class ${classElement.name}Isolate${isSameType ? " extends ${classElement.name}" : ""}{',
   );
 
   classBuffer.writeln('late final SendPort _sender;');
   classBuffer.writeln('late final Isolate isolate;');
 
   // init isloate
-  classBuffer.writeln('@override');
+  if (isSameType) classBuffer.writeln('@override');
 
   final initMethod = classElement.methods.firstWhere(
     (element) => element.name == "init",
@@ -40,45 +42,55 @@ void writeIsolateWarperClass(
   classBuffer.writeln('Future<void> init($initArg) async {');
 
   // checking if the isolate is alrady running
-  classBuffer.writeln(
-    'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
-  );
+  if (crossIsolates) {
+    classBuffer.writeln(
+      'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
+    );
 
-  classBuffer.writeln(' if (runningSendPort != null) {');
-  classBuffer.writeln('_sender = runningSendPort;');
-  classBuffer.writeln(
-      'isolate = Isolate(IsolateNameServer.lookupPortByName("$isolateControlPortNameServer")!);');
-  classBuffer.writeln('return;');
-  classBuffer.writeln('}');
+    classBuffer.writeln(' if (runningSendPort != null) {');
+    classBuffer.writeln('_sender = runningSendPort;');
+    classBuffer.writeln(
+        'isolate = Isolate(IsolateNameServer.lookupPortByName("$isolateControlPortNameServer")!);');
+    classBuffer.writeln('return;');
+    classBuffer.writeln('}');
+  }
 
   /////////////
 
-  classBuffer.writeln(
-    'final ReceivePort receivePort = ReceivePort(), exitRecivePort = ReceivePort();',
-  );
+  classBuffer.writeln('final ReceivePort receivePort = ReceivePort();');
+
+  if (crossIsolates)
+    classBuffer.writeln('final ReceivePort exitRecivePort = ReceivePort();');
+
   classBuffer.writeln('isolate = await Isolate.spawn<List<dynamic>>(');
   classBuffer.writeln('$isolateFuncName,');
   classBuffer.writeln('[receivePort.sendPort,$initArgList]');
   classBuffer.writeln(');');
 
-  classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
-
-  classBuffer.writeln('exitRecivePort.listen((message) {');
-  classBuffer.writeln(
-    'IsolateNameServer.removePortNameMapping("$isolateFuncName");',
-  );
-  classBuffer.writeln(
-    'IsolateNameServer.removePortNameMapping("$isolateControlPortNameServer");',
-  );
-  classBuffer.writeln('exitRecivePort.close();');
-  classBuffer.writeln('});');
-
   classBuffer.writeln('_sender = await receivePort.first;');
-  classBuffer.writeln(
-    'IsolateNameServer.registerPortWithName(_sender, "$isolateFuncName");',
-  );
-  classBuffer.writeln(
-      'IsolateNameServer.registerPortWithName(isolate.controlPort, "$isolateControlPortNameServer");');
+
+  if (crossIsolates) {
+    classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
+
+    classBuffer.writeln('exitRecivePort.listen((message) {');
+    classBuffer.writeln(
+      'IsolateNameServer.removePortNameMapping("$isolateFuncName");',
+    );
+    classBuffer.writeln(
+      'IsolateNameServer.removePortNameMapping("$isolateControlPortNameServer");',
+    );
+    classBuffer.writeln('exitRecivePort.close();');
+    classBuffer.writeln('});');
+
+    classBuffer.writeln(
+      'IsolateNameServer.registerPortWithName(_sender, "$isolateFuncName");',
+    );
+
+    classBuffer.writeln(
+      'IsolateNameServer.registerPortWithName(isolate.controlPort, "$isolateControlPortNameServer");',
+    );
+  }
+
   classBuffer.writeln('receivePort.close();');
 
   classBuffer.writeln('}');
@@ -96,7 +108,8 @@ void writeIsolateWarperClass(
 
     final arg = functionParameters(method);
 
-    classBuffer.writeln('@override');
+    if (isSameType) classBuffer.writeln('@override');
+
     if (method.returnType.isDartAsyncStream) {
       classBuffer.writeln('${method.returnType} ${method.name}($arg) {');
 

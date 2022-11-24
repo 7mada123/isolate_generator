@@ -1,3 +1,5 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'package:analyzer/dart/element/element.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -13,6 +15,7 @@ void writeIsolateWarperClass(
   );
 
   classBuffer.writeln('late final SendPort _sender;');
+  classBuffer.writeln('late final Isolate isolate;');
 
   // init isloate
   classBuffer.writeln('@override');
@@ -28,18 +31,54 @@ void writeIsolateWarperClass(
 
   final String initArg = functionParameters(initMethod);
 
+  final String isolateControlPortNameServer = "${isolateFuncName}_controlport";
+
   String initArgList = '';
 
   for (var par in initMethod.parameters) initArgList += '${par.name},';
 
   classBuffer.writeln('Future<void> init($initArg) async {');
 
-  classBuffer.writeln('final ReceivePort receivePort = ReceivePort();');
-  classBuffer.writeln('await Isolate.spawn<List<dynamic>>(');
+  // checking if the isolate is alrady running
+  classBuffer.writeln(
+    'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
+  );
+
+  classBuffer.writeln(' if (runningSendPort != null) {');
+  classBuffer.writeln('_sender = runningSendPort;');
+  classBuffer.writeln(
+      'isolate = Isolate(IsolateNameServer.lookupPortByName("$isolateControlPortNameServer")!);');
+  classBuffer.writeln('return;');
+  classBuffer.writeln('}');
+
+  /////////////
+
+  classBuffer.writeln(
+    'final ReceivePort receivePort = ReceivePort(), exitRecivePort = ReceivePort();',
+  );
+  classBuffer.writeln('isolate = await Isolate.spawn<List<dynamic>>(');
   classBuffer.writeln('$isolateFuncName,');
   classBuffer.writeln('[receivePort.sendPort,$initArgList]');
   classBuffer.writeln(');');
+
+  classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
+
+  classBuffer.writeln('exitRecivePort.listen((message) {');
+  classBuffer.writeln(
+    'IsolateNameServer.removePortNameMapping("$isolateFuncName");',
+  );
+  classBuffer.writeln(
+    'IsolateNameServer.removePortNameMapping("$isolateControlPortNameServer");',
+  );
+  classBuffer.writeln('exitRecivePort.close();');
+  classBuffer.writeln('});');
+
   classBuffer.writeln('_sender = await receivePort.first;');
+  classBuffer.writeln(
+    'IsolateNameServer.registerPortWithName(_sender, "$isolateFuncName");',
+  );
+  classBuffer.writeln(
+      'IsolateNameServer.registerPortWithName(isolate.controlPort, "$isolateControlPortNameServer");');
   classBuffer.writeln('receivePort.close();');
 
   classBuffer.writeln('}');

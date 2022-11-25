@@ -141,7 +141,9 @@ void writeIsolateWarperClass(
 
       classBuffer.writeln('if (event is IsolateGeneratorError) {');
 
-      classBuffer.writeln('controller.addError(event.error);');
+      classBuffer.writeln(
+        'controller.addError(event.error, event.stackTrace);',
+      );
 
       classBuffer.writeln('controller.close();');
 
@@ -177,7 +179,9 @@ void writeIsolateWarperClass(
 
       classBuffer.writeln('if (res is IsolateGeneratorError) {');
 
-      classBuffer.writeln('throw res.error;');
+      classBuffer.writeln(
+        'Error.throwWithStackTrace(res.error, res.stackTrace);',
+      );
 
       classBuffer.writeln('}');
 

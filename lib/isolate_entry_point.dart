@@ -16,13 +16,19 @@ void writeIsolateEntryPoint(
     'final ${classElement.name} instance = ${classElement.name}();',
   );
 
-  final initMethod = classElement.methods.firstWhere(
+  final initMethodIndex = classElement.methods.indexWhere(
     (element) => element.name == "init",
   );
 
-  final String initArg = functionParametersValue(initMethod, 1);
+  final String initArg = initMethodIndex == -1
+      ? ""
+      : functionParametersValue(classElement.methods[initMethodIndex], 1);
 
-  classBuffer.writeln('await instance.init($initArg);');
+  if (initMethodIndex != -1) {
+    classBuffer.writeln(
+      '${classElement.methods[initMethodIndex].returnType.isDartAsyncFuture ? "await " : ""}instance.init($initArg);',
+    );
+  }
 
   // ///////////////////
   classBuffer.writeln('message[0].send(port.sendPort);');

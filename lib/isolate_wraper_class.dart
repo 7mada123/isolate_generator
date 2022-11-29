@@ -22,22 +22,28 @@ void writeIsolateWarperClass(
   // init isloate
   if (isSameType) classBuffer.writeln('@override');
 
-  final initMethod = classElement.methods.firstWhere(
+  final initMethodIndex = classElement.methods.indexWhere(
     (element) => element.name == "init",
-    orElse: () => throw InvalidGenerationSourceError(
+  );
+
+  if (initMethodIndex == -1 && isSameType)
+    throw InvalidGenerationSourceError(
       redError('init method not found\n${StackTrace.current}'),
       todo:
           "provide `init` function to initialize the isolate even if the main class don't need initialization",
-    ),
-  );
+    );
 
-  final String initArg = functionParameters(initMethod);
+  final String initArg = initMethodIndex == -1
+      ? ""
+      : functionParameters(classElement.methods[initMethodIndex]);
 
   final String isolateControlPortNameServer = "${isolateFuncName}_controlport";
 
   String initArgList = '';
 
-  for (var par in initMethod.parameters) initArgList += '${par.name},';
+  if (initMethodIndex != -1)
+    for (var par in classElement.methods[initMethodIndex].parameters)
+      initArgList += '${par.name},';
 
   classBuffer.writeln('Future<void> init($initArg) async {');
 
@@ -161,8 +167,21 @@ void writeIsolateWarperClass(
 
       classBuffer.writeln('return controller.stream;');
     } else {
+      String returnType = method.returnType.toString();
+
+      if (!method.returnType.isDartAsyncFuture) {
+        if (isSameType)
+          throw InvalidGenerationSourceError(
+            redError('Function should return Future<T>\n${StackTrace.current}'),
+            todo:
+                "Make sure to make the function return a future becasue comuncation with isolates should be asynchronous",
+          );
+
+        returnType = "Future<$returnType>";
+      }
+
       classBuffer.writeln(
-        '${method.returnType} ${method.name}($arg) async {',
+        '$returnType ${method.name}($arg) async {',
       );
 
       classBuffer.writeln('final receivePort = ReceivePort();');

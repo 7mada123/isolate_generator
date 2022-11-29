@@ -15,12 +15,12 @@ dependencies:
 
   build:
   source_gen:
-  analyzer: ^4.7.0
+  analyzer: ">=4.7.0 < 5.0.0"
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ">=2.0.0"
 
   build_test:
   build_runner:

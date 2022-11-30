@@ -55,7 +55,7 @@ and now you have generated `MyClassIsolate`
 the usage is the same as the default class with minor difference
 
 - you have `init` method which is used to initialize the `Isolate`
-- you can get reference to the running `Isolate` `MyClassIsolate,isolate`
+- you can get reference to the running `Isolate` by `MyClassIsolate,isolate`
 - now `sum` method will return `Future<int>` instead of `int` because isolate communications is asynchronous
 
 ### using the generated class
@@ -77,7 +77,7 @@ the usage is the same as the default class with minor difference
 
 ### initializing class with custom argument
 
-in case you have want to initialize your class with custom argument, let's path for example
+in case you have want to initialize your class with custom argument, let's say path for example
 
 you would need to do it with `init` method in the default class
 
@@ -105,17 +105,17 @@ and then your `init` method will be mapped to the generated class
   Directory tempDir = await getTemporaryDirectory();
   String tempPath = tempDir.path;
 
-  // initlize the isolate and the defulat class with the provided path
+  // initialize the isolate and the default class with the provided path
   await myClass.init(path: tempPath);
 ```
 
-> class constructor isn't supported, only initialize your classes through `init` method
+> class constructor isn't supported, only initialize your classes through `init` method even if you are not going to used to get the same behaviors from the default class
 
 ### Generate arguments
 
 #### isSameType
 
-you can make the generated class to get identified as the default class
+you can make the generated class identifiable as the default class
 ```dart
     // true
     MyClass() == MyClassIsolate();
@@ -146,9 +146,9 @@ to use it all the classes should be in a library, to see the implementation plea
 
 ## Limitation
 
-- Have the same isolate limitation
+- Have the same `Isolate` limitation
 
-- class constructs isn't supported
+- class constructor isn't supported
 
 - the generator will only care about public functions/methods however you can use private functions and local variables internally without any issues
 

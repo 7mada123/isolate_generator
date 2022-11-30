@@ -1,7 +1,7 @@
 name: isolate_generator
-description: A new Flutter package project.
-version: 0.0.1
-homepage:
+description: A flutter package for Isolate code generation.
+version: 0.0.5
+homepage: https://github.com/7mada123/isolate_generator
 
 environment:
   sdk: '>=2.18.2 <3.0.0'
@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   flutter:
-    sdk: flutter
+    sdk: flutter 
   isolate_generator_annotation:
     path: ../isolate_generator_annotation
 

@@ -8,6 +8,9 @@ import 'package:source_gen/source_gen.dart';
 import './helpers.dart';
 import './isolate_entry_point.dart';
 import './isolate_wraper_class.dart';
+import './shared_isolate/shared_isolate_entry_point.dart';
+import './shared_isolate/shared_isolate_helper.dart';
+import './shared_isolate/shared_isolate_wraper_class.dart';
 
 class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
   @override
@@ -23,8 +26,49 @@ class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
       );
     }
 
+    final isSharedIsolate = annotation.read("_isSharedIsolate").boolValue;
+
+    if (isSharedIsolate) {
+      final sharedIsolate = annotation.read("sharedIsolate").objectValue;
+
+      final String key = sharedIsolate.getField("isolateKey")!.toStringValue()!;
+      final SharedIsolateElement sharedIsolateElement =
+          SharedIsolateElement.generate(
+        classElement: element,
+        sharedIsolate: sharedIsolate,
+        annotation: annotation,
+      );
+
+      final int count = sharedIsolate.getField("classCount")!.toIntValue()!;
+
+      sharedIsolateMap.update(
+        key,
+        (value) => value..add(sharedIsolateElement),
+        ifAbsent: () => [sharedIsolateElement],
+      );
+
+      if (sharedIsolateMap[key]!.length == count) {
+        final classBuffer = StringBuffer();
+
+        writeSharedIsolateWarperClasses(
+          classBuffer,
+          sharedIsolateMap[key]!,
+          key.toLowerCase(),
+        );
+
+        writeSharedIsolateEntryPoint(
+          classBuffer,
+          sharedIsolateMap[key]!,
+          key,
+        );
+
+        return classBuffer.toString();
+      }
+
+      return "";
+    }
+
     final bool isSameType = annotation.read("isSameType").boolValue;
-    final bool crossIsolates = annotation.read("crossIsolates").boolValue;
 
     final ClassElement classElement = element;
 
@@ -37,7 +81,6 @@ class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
       classElement,
       isolateFuncName,
       isSameType,
-      crossIsolates,
     );
 
     writeIsolateEntryPoint(classBuffer, classElement, isolateFuncName);

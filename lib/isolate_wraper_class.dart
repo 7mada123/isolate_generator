@@ -10,7 +10,6 @@ void writeIsolateWarperClass(
   final ClassElement classElement,
   final String isolateFuncName,
   final bool isSameType,
-  final bool crossIsolates,
 ) {
   classBuffer.writeln(
     'class ${classElement.name}Isolate${isSameType ? " extends ${classElement.name}" : ""}{',
@@ -47,26 +46,22 @@ void writeIsolateWarperClass(
 
   classBuffer.writeln('Future<void> init($initArg) async {');
 
-  // checking if the isolate is alrady running
-  if (crossIsolates) {
-    classBuffer.writeln(
-      'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
-    );
+  classBuffer.writeln(
+    'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
+  );
 
-    classBuffer.writeln(' if (runningSendPort != null) {');
-    classBuffer.writeln('_sender = runningSendPort;');
-    classBuffer.writeln(
-        'isolate = Isolate(IsolateNameServer.lookupPortByName("$isolateControlPortNameServer")!);');
-    classBuffer.writeln('return;');
-    classBuffer.writeln('}');
-  }
+  classBuffer.writeln(' if (runningSendPort != null) {');
+  classBuffer.writeln('_sender = runningSendPort;');
+  classBuffer.writeln(
+      'isolate = Isolate(IsolateNameServer.lookupPortByName("$isolateControlPortNameServer")!);');
+  classBuffer.writeln('return;');
+  classBuffer.writeln('}');
 
   /////////////
 
   classBuffer.writeln('final ReceivePort receivePort = ReceivePort();');
 
-  if (crossIsolates)
-    classBuffer.writeln('final ReceivePort exitRecivePort = ReceivePort();');
+  classBuffer.writeln('final ReceivePort exitRecivePort = ReceivePort();');
 
   classBuffer.writeln('isolate = await Isolate.spawn<List<dynamic>>(');
   classBuffer.writeln('$isolateFuncName,');
@@ -75,27 +70,25 @@ void writeIsolateWarperClass(
 
   classBuffer.writeln('_sender = await receivePort.first;');
 
-  if (crossIsolates) {
-    classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
+  classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
 
-    classBuffer.writeln('exitRecivePort.listen((message) {');
-    classBuffer.writeln(
-      'IsolateNameServer.removePortNameMapping("$isolateFuncName");',
-    );
-    classBuffer.writeln(
-      'IsolateNameServer.removePortNameMapping("$isolateControlPortNameServer");',
-    );
-    classBuffer.writeln('exitRecivePort.close();');
-    classBuffer.writeln('});');
+  classBuffer.writeln('exitRecivePort.listen((message) {');
+  classBuffer.writeln(
+    'IsolateNameServer.removePortNameMapping("$isolateFuncName");',
+  );
+  classBuffer.writeln(
+    'IsolateNameServer.removePortNameMapping("$isolateControlPortNameServer");',
+  );
+  classBuffer.writeln('exitRecivePort.close();');
+  classBuffer.writeln('});');
 
-    classBuffer.writeln(
-      'IsolateNameServer.registerPortWithName(_sender, "$isolateFuncName");',
-    );
+  classBuffer.writeln(
+    'IsolateNameServer.registerPortWithName(_sender, "$isolateFuncName");',
+  );
 
-    classBuffer.writeln(
-      'IsolateNameServer.registerPortWithName(isolate.controlPort, "$isolateControlPortNameServer");',
-    );
-  }
+  classBuffer.writeln(
+    'IsolateNameServer.registerPortWithName(isolate.controlPort, "$isolateControlPortNameServer");',
+  );
 
   classBuffer.writeln('receivePort.close();');
 

@@ -67,8 +67,19 @@ void writeIsolateWarperClass(
   classBuffer.writeln('$isolateFuncName,');
   classBuffer.writeln('[receivePort.sendPort,$initArgList]');
   classBuffer.writeln(');');
-
-  classBuffer.writeln('_sender = await receivePort.first;');
+  //////
+  if (initMethodIndex != -1) {
+    classBuffer.writeln('final res = await receivePort.first;');
+    classBuffer.writeln('if (res is IsolateGeneratorError) {');
+    classBuffer.writeln(
+      'Error.throwWithStackTrace(res.error, res.stackTrace);',
+    );
+    classBuffer.writeln('}');
+    classBuffer.writeln(' _sender = res;');
+  } else {
+    classBuffer.writeln('_sender = await receivePort.first;');
+  }
+  //////
 
   classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
 

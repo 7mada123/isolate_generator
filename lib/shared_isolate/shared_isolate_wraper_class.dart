@@ -133,7 +133,18 @@ void writeSharedIsolateWarperClasses(
       "isolateMainSender.send([${element.id},classRecivePort.sendPort,$initArgList]);",
     );
 
-    classBuffer.writeln("_sender = await classRecivePort.first;");
+    if (initMethodIndex != -1) {
+      classBuffer.writeln("final res = await classRecivePort.first;");
+
+      classBuffer.writeln('if (res is IsolateGeneratorError) {');
+      classBuffer.writeln(
+        'Error.throwWithStackTrace(res.error, res.stackTrace);',
+      );
+      classBuffer.writeln('}');
+      classBuffer.writeln(' _sender = res;');
+    } else {
+      classBuffer.writeln("_sender = await classRecivePort.first;");
+    }
 
     classBuffer.writeln("classRecivePort.close();");
 

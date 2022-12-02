@@ -96,12 +96,20 @@ void writeSharedIsolateEntryPoint(
             element.classElement.methods[initMethodIndex], 2);
 
     if (initMethodIndex != -1) {
+      classBuffer.writeln('try {');
       classBuffer.writeln(
         '${element.classElement.methods[initMethodIndex].returnType.isDartAsyncFuture ? "await " : ""}instance${element.id}.init($initArg);',
       );
-    }
+      classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
 
-    classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
+      classBuffer.writeln('} catch (e,s) {');
+
+      classBuffer.writeln('sendPort.send(IsolateGeneratorError(e,s));');
+
+      classBuffer.writeln('}');
+    } else {
+      classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
+    }
 
     /////////
     classBuffer.writeln("break;");

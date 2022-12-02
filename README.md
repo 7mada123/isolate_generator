@@ -55,10 +55,10 @@ and now you have generated `MyClassIsolate`
 the usage is the same as the default class with minor difference
 
 - you have `init` method which is used to initialize the `Isolate`
-- you can get reference to the running `Isolate` by `MyClassIsolate,isolate`
+- you can get reference to the running `Isolate` by `MyClassIsolate.isolate`
 - now `sum` method will return `Future<int>` instead of `int` because isolate communications is asynchronous
 
-### using the generated class
+#### using the generated class
 
 ```dart
   final myClass = MyClassIsolate();
@@ -90,10 +90,6 @@ class MyClass {
   void init({required String path}) {
     this.path = path;
   }
-
-  int sum(int a, int b) {
-    return a + b;
-  }
 }
 ```
 
@@ -109,9 +105,37 @@ and then your `init` method will be mapped to the generated class
   await myClass.init(path: tempPath);
 ```
 
-> class constructor isn't supported, only initialize your classes through `init` method even if you are not going to used to get the same behaviors from the default class
+> class constructor isn't supported, only initialize your classes through `init` method
 
-### Generate arguments
+### Communications between isolates
+
+to communicate between isolates simply use the genrated class with the new one you want to genrate, and that's it
+
+```dart
+@GenerateIsolate()
+// the new class you want to run inside isolate
+class MyNewClass {
+  // the generated class that already run inside an isolate
+  final genratedClass = MyClassIsolate();
+
+  Future<void> init() async {
+    //..your initialization code..//
+
+    await genratedClass.init();
+  }
+
+  Future<void> ss() async {
+    //..your logic..//
+
+    // invoke a method from this isolate on the other isolate
+    await genratedClass.createFile("fileName");
+  }
+}
+```
+
+> Whenever you call `genratedClass.init()` method in the main isolate or any other isolate If there is an already running isolate instance for `genratedClass`, it will be used instead of spawning a new isolate.
+
+### Generator arguments
 
 #### isSameType
 
@@ -133,8 +157,7 @@ class MyClass {
 
 this will tell the generated class to extend the default class and override it's methods
 
-> you need to make sure that all methods in the default class return `Future<T>` and/or `Stream`, and also you have to provide `init` method
-
+> you need to make sure that all methods in the default class return `Future<T>` and/or `Stream<T>`, and also you have to provide `init` method even if the class does not need initialization to get the same behaviors from the generated class
 
 #### sharedIsolate
 
@@ -142,7 +165,7 @@ if you want to run multiple classes in the same isolate while writing the code f
 
 to use it all the classes should be in a library, to see the implementation please take a look at the [example]()
 
-> this isn't for communication between isolates but to share the same isolate between different class so you don't end up spawning different isolate for each class
+> this isn't for communication between isolates but for sharing the same isolate between different class so you don't end up spawning different isolate for each simple class
 
 ## Limitation
 

@@ -111,7 +111,7 @@ void writeSharedIsolateEntryPoint(
 
   classBuffer.writeln('mainPort.listen(mainPortListener);');
 
-  classBuffer.writeln("mainPort.sendPort.send(mainPort.sendPort);");
+  classBuffer.writeln("isolateMainPortSender.send(mainPort.sendPort);");
 
   classBuffer.writeln('}');
 }

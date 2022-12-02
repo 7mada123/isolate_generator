@@ -163,7 +163,7 @@ this will tell the generated class to extend the default class and override it's
 
 if you want to run multiple classes in the same isolate while writing the code for each class in a separate file you can use `sharedIsolate` argument
 
-to use it all the classes should be in a library, to see the implementation please take a look at the [example]()
+to use it all the classes should be in a library, to see the implementation please take a look at the [shared_isolate_example](https://github.com/7mada123/isolate_generator/tree/main/example/lib/shared_isolate_example)
 
 > this isn't for communication between isolates but for sharing the same isolate between different class so you don't end up spawning different isolate for each simple class
 
@@ -208,4 +208,4 @@ final int val = await myClass.getVal();
 
 ### Example app
 
-The [example]() directory has a sample application that uses this plugin.
+The [example](https://github.com/7mada123/isolate_generator/tree/main/example) directory has a sample application that uses this plugin.

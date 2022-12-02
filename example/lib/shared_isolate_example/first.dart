@@ -8,8 +8,6 @@ class First {
   late final String val;
   late final int? count;
 
-  final SecoundIsolate secoundIsolate = SecoundIsolate();
-
   Future<void> init(String val, {int? count}) async {
     this.val = val;
     this.count = count;

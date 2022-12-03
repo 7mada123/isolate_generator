@@ -245,10 +245,10 @@ packages:
   isolate_generator_annotation:
     dependency: "direct main"
     description:
-      path: "../../isolate_generator_annotation"
-      relative: true
-    source: path
-    version: "0.0.5"
+      name: isolate_generator_annotation
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.6"
   js:
     dependency: transitive
     description:

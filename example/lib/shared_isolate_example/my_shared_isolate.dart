@@ -8,7 +8,7 @@ import 'package:isolate_generator_annotation/isolate_generator_annotation.dart';
 
 part './first.dart';
 part './secound.dart';
-part './thrid.dart';
+part './thrid_with_isolates_communications.dart';
 part 'my_shared_isolate.g.dart';
 
 // the number of classes that share the same isolate

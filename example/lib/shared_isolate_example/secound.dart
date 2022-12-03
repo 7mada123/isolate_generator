@@ -1,16 +1,15 @@
 part of my_shared_isolate;
 
 @GenerateIsolate(
+  isSameType: true,
   sharedIsolate: SharedIsolate(2, _classCount, _isolateId),
 )
 class Secound {
-  late final String path;
+  final String path;
 
-  void init({required String path}) {
-    this.path = path;
-  }
+  Secound(this.path);
 
-  void createFile(String fileName) {
+  Future<void> createFile(String fileName) async {
     File(_filePath(fileName)).createSync();
   }
 

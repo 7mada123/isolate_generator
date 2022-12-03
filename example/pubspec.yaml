@@ -31,8 +31,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  isolate_generator_annotation:
-    path: ../../isolate_generator_annotation
+  isolate_generator_annotation: ^0.0.6
 
 
   # The following adds the Cupertino Icons font to your application.

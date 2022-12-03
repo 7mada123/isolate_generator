@@ -7,6 +7,7 @@ part of 'simple_isolate.dart';
 // **************************************************************************
 
 class MyClassIsolate {
+  MyClassIsolate();
   late final SendPort _sender;
   late final Isolate isolate;
   Future<void> init() async {
@@ -81,20 +82,6 @@ class MyClassIsolate {
     );
     return controller.stream;
   }
-
-  Future<void> pp() async {
-    final receivePort = ReceivePort();
-    _sender.send([
-      'pp',
-      receivePort.sendPort,
-    ]);
-    final res = await receivePort.first;
-    receivePort.close();
-    if (res is IsolateGeneratorError) {
-      Error.throwWithStackTrace(res.error, res.stackTrace);
-    }
-    return res;
-  }
 }
 
 Future<void> _myclassisolate(final List<dynamic> message) async {
@@ -124,10 +111,6 @@ Future<void> _myclassisolate(final List<dynamic> message) async {
           }, onDone: () {
             sendPort.send(const IsolateGeneratorStreamCompleted());
           });
-          break;
-        case 'pp':
-          instance.pp();
-          sendPort.send(null);
           break;
       }
     } catch (e, s) {

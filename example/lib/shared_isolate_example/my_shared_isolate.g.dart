@@ -6,14 +6,18 @@ part of my_shared_isolate;
 // IsolateGenerator
 // **************************************************************************
 
-class FirstIsolate extends First {
+class FirstIsolate {
+  final String _val;
+  final int? _count;
+
+  FirstIsolate(
+    String val,
+    int? count,
+  )   : _val = val,
+        _count = count;
   late final SendPort _sender;
   late final Isolate isolate;
-  @override
-  Future<void> init(
-    String val, {
-    int? count,
-  }) async {
+  Future<void> init() async {
     final classPort = IsolateNameServer.lookupPortByName("mysharedisolate_1");
     if (classPort != null) {
       _sender = classPort;
@@ -25,8 +29,7 @@ class FirstIsolate extends First {
         IsolateNameServer.lookupPortByName("mysharedisolate_controlport");
     late final SendPort isolateMainSender;
     if (isolateControllerPort != null) {
-      isolate = Isolate(
-          IsolateNameServer.lookupPortByName("mysharedisolate_controlport")!);
+      isolate = Isolate(isolateControllerPort);
       isolateMainSender =
           IsolateNameServer.lookupPortByName("mysharedisolate_main_sender")!;
     } else {
@@ -54,19 +57,14 @@ class FirstIsolate extends First {
     isolateMainSender.send([
       1,
       classRecivePort.sendPort,
-      val,
-      count,
+      _val,
+      _count,
     ]);
-    final res = await classRecivePort.first;
-    if (res is IsolateGeneratorError) {
-      Error.throwWithStackTrace(res.error, res.stackTrace);
-    }
-    _sender = res;
+    _sender = await classRecivePort.first;
     classRecivePort.close();
     IsolateNameServer.registerPortWithName(_sender, "mysharedisolate_1");
   }
 
-  @override
   Future<int> multiply(
     int newVal,
   ) async {
@@ -84,7 +82,6 @@ class FirstIsolate extends First {
     return res;
   }
 
-  @override
   Future<String> contact(
     String newString, {
     bool atEnd = false,
@@ -105,12 +102,18 @@ class FirstIsolate extends First {
   }
 }
 
-class SecoundIsolate {
+class SecoundIsolate extends Secound {
+  final String _path;
+
+  SecoundIsolate(
+    String path,
+  )   : _path = path,
+        super(
+          path,
+        );
   late final SendPort _sender;
   late final Isolate isolate;
-  Future<void> init({
-    required String path,
-  }) async {
+  Future<void> init() async {
     final classPort = IsolateNameServer.lookupPortByName("mysharedisolate_2");
     if (classPort != null) {
       _sender = classPort;
@@ -122,8 +125,7 @@ class SecoundIsolate {
         IsolateNameServer.lookupPortByName("mysharedisolate_controlport");
     late final SendPort isolateMainSender;
     if (isolateControllerPort != null) {
-      isolate = Isolate(
-          IsolateNameServer.lookupPortByName("mysharedisolate_controlport")!);
+      isolate = Isolate(isolateControllerPort);
       isolateMainSender =
           IsolateNameServer.lookupPortByName("mysharedisolate_main_sender")!;
     } else {
@@ -151,17 +153,14 @@ class SecoundIsolate {
     isolateMainSender.send([
       2,
       classRecivePort.sendPort,
-      path,
+      _path,
     ]);
-    final res = await classRecivePort.first;
-    if (res is IsolateGeneratorError) {
-      Error.throwWithStackTrace(res.error, res.stackTrace);
-    }
-    _sender = res;
+    _sender = await classRecivePort.first;
     classRecivePort.close();
     IsolateNameServer.registerPortWithName(_sender, "mysharedisolate_2");
   }
 
+  @override
   Future<void> createFile(
     String fileName,
   ) async {
@@ -181,6 +180,11 @@ class SecoundIsolate {
 }
 
 class ThridIsolate {
+  final int _id;
+
+  ThridIsolate({
+    required int id,
+  }) : _id = id;
   late final SendPort _sender;
   late final Isolate isolate;
   Future<void> init() async {
@@ -195,8 +199,7 @@ class ThridIsolate {
         IsolateNameServer.lookupPortByName("mysharedisolate_controlport");
     late final SendPort isolateMainSender;
     if (isolateControllerPort != null) {
-      isolate = Isolate(
-          IsolateNameServer.lookupPortByName("mysharedisolate_controlport")!);
+      isolate = Isolate(isolateControllerPort);
       isolateMainSender =
           IsolateNameServer.lookupPortByName("mysharedisolate_main_sender")!;
     } else {
@@ -224,14 +227,25 @@ class ThridIsolate {
     isolateMainSender.send([
       3,
       classRecivePort.sendPort,
+      _id,
     ]);
-    final res = await classRecivePort.first;
+    _sender = await classRecivePort.first;
+    classRecivePort.close();
+    IsolateNameServer.registerPortWithName(_sender, "mysharedisolate_3");
+  }
+
+  Future<void> initOtherIsolate() async {
+    final receivePort = ReceivePort();
+    _sender.send([
+      'initOtherIsolate',
+      receivePort.sendPort,
+    ]);
+    final res = await receivePort.first;
+    receivePort.close();
     if (res is IsolateGeneratorError) {
       Error.throwWithStackTrace(res.error, res.stackTrace);
     }
-    _sender = res;
-    classRecivePort.close();
-    IsolateNameServer.registerPortWithName(_sender, "mysharedisolate_3");
+    return res;
   }
 
   Future<void> printValue(
@@ -255,20 +269,20 @@ class ThridIsolate {
 Future<void> _mysharedisolate(final SendPort isolateMainPortSender) async {
   final ReceivePort mainPort = ReceivePort();
   final ReceivePort port1 = ReceivePort();
-  final First instance1 = First();
+  late final First instance1;
   void port1Listener(final message) async {
     final String key = message[0];
     final SendPort sendPort = message[1];
     try {
       switch (key) {
         case 'multiply':
-          final res = await instance1.multiply(
+          final res = instance1.multiply(
             message[2],
           );
           sendPort.send(res);
           break;
         case 'contact':
-          final res = await instance1.contact(
+          final res = instance1.contact(
             message[2],
             atEnd: message[3],
           );
@@ -282,14 +296,14 @@ Future<void> _mysharedisolate(final SendPort isolateMainPortSender) async {
 
   port1.listen(port1Listener);
   final ReceivePort port2 = ReceivePort();
-  final Secound instance2 = Secound();
+  late final Secound instance2;
   void port2Listener(final message) async {
     final String key = message[0];
     final SendPort sendPort = message[1];
     try {
       switch (key) {
         case 'createFile':
-          instance2.createFile(
+          await instance2.createFile(
             message[2],
           );
           sendPort.send(null);
@@ -302,12 +316,16 @@ Future<void> _mysharedisolate(final SendPort isolateMainPortSender) async {
 
   port2.listen(port2Listener);
   final ReceivePort port3 = ReceivePort();
-  final Thrid instance3 = Thrid();
+  late final Thrid instance3;
   void port3Listener(final message) async {
     final String key = message[0];
     final SendPort sendPort = message[1];
     try {
       switch (key) {
+        case 'initOtherIsolate':
+          await instance3.initOtherIsolate();
+          sendPort.send(null);
+          break;
         case 'printValue':
           await instance3.printValue(
             message[2],
@@ -326,33 +344,24 @@ Future<void> _mysharedisolate(final SendPort isolateMainPortSender) async {
     final SendPort sendPort = message[1];
     switch (id) {
       case 1:
-        try {
-          await instance1.init(
-            message[2],
-            count: message[3],
-          );
-          sendPort.send(port1.sendPort);
-        } catch (e, s) {
-          sendPort.send(IsolateGeneratorError(e, s));
-        }
+        instance1 = First(
+          message[1],
+          message[2],
+        );
+        sendPort.send(port1.sendPort);
         break;
       case 2:
-        try {
-          instance2.init(
-            path: message[2],
-          );
-          sendPort.send(port2.sendPort);
-        } catch (e, s) {
-          sendPort.send(IsolateGeneratorError(e, s));
-        }
+        instance2 = Secound(
+          message[1],
+        );
+        sendPort.send(port2.sendPort);
         break;
       case 3:
-        try {
-          await instance3.init();
-          sendPort.send(port3.sendPort);
-        } catch (e, s) {
-          sendPort.send(IsolateGeneratorError(e, s));
-        }
+        instance3 = Thrid(
+          id: message[1],
+          first: instance1,
+        );
+        sendPort.send(port3.sendPort);
         break;
     }
   }

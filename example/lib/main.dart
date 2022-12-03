@@ -97,7 +97,6 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                       const Text("Genrated class"),
                       ElevatedButton(
                         onPressed: () async {
-                          genratedClass.pp();
                           final res = await genratedClass.fib(fibNumber);
                           print(res);
                         },

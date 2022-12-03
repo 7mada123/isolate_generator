@@ -1,6 +1,12 @@
-import 'package:analyzer/dart/element/element.dart';
-import 'shared_isolate_helper.dart';
+// ignore_for_file: curly_braces_in_flow_control_structures
 
+import 'dart:collection';
+
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:source_gen/source_gen.dart';
+
+import './shared_isolate_helper.dart';
 import '../helpers.dart';
 
 void writeSharedIsolateEntryPoint(
@@ -14,14 +20,51 @@ void writeSharedIsolateEntryPoint(
 
   classBuffer.writeln('final ReceivePort mainPort = ReceivePort();');
 
+  Map<DartType, String> innerInstances = HashMap();
+
   for (SharedIsolateElement element in elements) {
     final int id = element.id;
     final ClassElement classElement = element.classElement;
 
     classBuffer.writeln('final ReceivePort port$id = ReceivePort();');
 
+    if (element.sharedInstance.isNotEmpty) {
+      // String constr;
+
+      for (ConstructorElement constructor
+          in element.classElement.constructors) {
+        for (ParameterElement par in constructor.parameters) {
+          for (DartType sharedInstance in element.sharedInstance) {
+            if (par.type == sharedInstance) {
+              String typeStr = par.type.toString();
+
+              if (typeStr[typeStr.length - 1] == "?")
+                typeStr = typeStr.substring(0, typeStr.length - 1);
+
+              final int index = elements.indexWhere(
+                (element) => element.classElement.name == typeStr,
+              );
+
+              if (index == -1) {
+                throw InvalidGenerationSourceError(
+                  redError('''class not found
+                class ${par.type} has been declared as a dependency for class ${element.classElement.name}
+                but class ${par.type} not found
+                ${StackTrace.current}
+                '''),
+                  todo: "add ${par.type} class to the shared isolate",
+                );
+              }
+
+              innerInstances[par.type] = "instance${elements[index].id}";
+            }
+          }
+        }
+      }
+    }
+
     classBuffer.writeln(
-      'final ${classElement.name} instance$id = ${classElement.name}();',
+      'late final ${classElement.name} instance$id;',
     );
 
     // ///////////////////
@@ -86,30 +129,19 @@ void writeSharedIsolateEntryPoint(
   for (SharedIsolateElement element in elements) {
     classBuffer.writeln("case ${element.id}:");
     /////////
-    final initMethodIndex = element.classElement.methods.indexWhere(
-      (element) => element.name == "init",
+
+    final String constructorsArg = element.classElement.constructors.isNotEmpty
+        ? constructorParametersValue(
+            element.classElement.constructors.first,
+            1,
+            replace: innerInstances,
+          )
+        : "";
+
+    classBuffer.writeln(
+      "instance${element.id} = ${element.classElement.name}($constructorsArg);",
     );
-
-    final String initArg = initMethodIndex == -1
-        ? ""
-        : functionParametersValue(
-            element.classElement.methods[initMethodIndex], 2);
-
-    if (initMethodIndex != -1) {
-      classBuffer.writeln('try {');
-      classBuffer.writeln(
-        '${element.classElement.methods[initMethodIndex].returnType.isDartAsyncFuture ? "await " : ""}instance${element.id}.init($initArg);',
-      );
-      classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
-
-      classBuffer.writeln('} catch (e,s) {');
-
-      classBuffer.writeln('sendPort.send(IsolateGeneratorError(e,s));');
-
-      classBuffer.writeln('}');
-    } else {
-      classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
-    }
+    classBuffer.writeln("sendPort.send(port${element.id}.sendPort);");
 
     /////////
     classBuffer.writeln("break;");

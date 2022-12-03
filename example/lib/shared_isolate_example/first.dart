@@ -1,23 +1,19 @@
 part of my_shared_isolate;
 
 @GenerateIsolate(
-  isSameType: true,
   sharedIsolate: SharedIsolate(1, _classCount, _isolateId),
 )
 class First {
-  late final String val;
-  late final int? count;
+  final String val;
+  final int? count;
 
-  Future<void> init(String val, {int? count}) async {
-    this.val = val;
-    this.count = count;
-  }
+  First(this.val, this.count);
 
-  Future<int> multiply(int newVal) async {
+  int multiply(int newVal) {
     return newVal * (count ?? 1);
   }
 
-  Future<String> contact(String newString, {bool atEnd = false}) async {
+  String contact(String newString, {bool atEnd = false}) {
     if (atEnd) return newString + val;
 
     return val + newString;

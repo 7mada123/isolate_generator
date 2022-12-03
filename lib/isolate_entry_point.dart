@@ -12,33 +12,19 @@ void writeIsolateEntryPoint(
   );
   classBuffer.writeln('final ReceivePort port = ReceivePort();');
   // logic before sending the port
+
+  final String constructorsArg = classElement.constructors.isNotEmpty
+      ? constructorParametersValue(
+          classElement.constructors.first,
+          1,
+        )
+      : "";
+
   classBuffer.writeln(
-    'final ${classElement.name} instance = ${classElement.name}();',
+    'final ${classElement.name} instance = ${classElement.name}($constructorsArg);',
   );
 
-  final initMethodIndex = classElement.methods.indexWhere(
-    (element) => element.name == "init",
-  );
-
-  final String initArg = initMethodIndex == -1
-      ? ""
-      : functionParametersValue(classElement.methods[initMethodIndex], 1);
-
-  if (initMethodIndex != -1) {
-    classBuffer.writeln('try {');
-    classBuffer.writeln(
-      '${classElement.methods[initMethodIndex].returnType.isDartAsyncFuture ? "await " : ""}instance.init($initArg);',
-    );
-
-    classBuffer.writeln('message[0].send(port.sendPort);');
-    classBuffer.writeln('} catch (e,s) {');
-
-    classBuffer.writeln('message[0].send(IsolateGeneratorError(e,s));');
-
-    classBuffer.writeln('}');
-  } else {
-    classBuffer.writeln('message[0].send(port.sendPort);');
-  }
+  classBuffer.writeln('message[0].send(port.sendPort);');
 
   // handeling functions inside the isolate
   classBuffer.writeln('void mainPortListener(final message) async {');

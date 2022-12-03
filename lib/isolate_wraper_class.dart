@@ -15,36 +15,26 @@ void writeIsolateWarperClass(
     'class ${classElement.name}Isolate${isSameType ? " extends ${classElement.name}" : ""}{',
   );
 
+  classBuffer.writeln(constructorFileds(
+    classElement.constructors.first,
+  ));
+
+  if (isSameType) {
+    classBuffer.writeln(
+      "${classElement.name}Isolate${constructorParametersSameType(classElement.constructors.first)};",
+    );
+  } else {
+    classBuffer.writeln(
+      "${classElement.name}Isolate${constructorParameters(classElement.constructors.first)};",
+    );
+  }
+
   classBuffer.writeln('late final SendPort _sender;');
   classBuffer.writeln('late final Isolate isolate;');
 
-  // init isloate
-  if (isSameType) classBuffer.writeln('@override');
-
-  final initMethodIndex = classElement.methods.indexWhere(
-    (element) => element.name == "init",
-  );
-
-  if (initMethodIndex == -1 && isSameType)
-    throw InvalidGenerationSourceError(
-      redError('init method not found\n${StackTrace.current}'),
-      todo:
-          "provide `init` function to initialize the isolate even if the main class don't need initialization",
-    );
-
-  final String initArg = initMethodIndex == -1
-      ? ""
-      : functionParameters(classElement.methods[initMethodIndex]);
-
   final String isolateControlPortNameServer = "${isolateFuncName}_controlport";
 
-  String initArgList = '';
-
-  if (initMethodIndex != -1)
-    for (var par in classElement.methods[initMethodIndex].parameters)
-      initArgList += '${par.name},';
-
-  classBuffer.writeln('Future<void> init($initArg) async {');
+  classBuffer.writeln('Future<void> init() async {');
 
   classBuffer.writeln(
     'final runningSendPort = IsolateNameServer.lookupPortByName("$isolateFuncName");',
@@ -65,21 +55,11 @@ void writeIsolateWarperClass(
 
   classBuffer.writeln('isolate = await Isolate.spawn<List<dynamic>>(');
   classBuffer.writeln('$isolateFuncName,');
-  classBuffer.writeln('[receivePort.sendPort,$initArgList]');
+  classBuffer.writeln(
+      '[receivePort.sendPort,${constructorParametersValueList(classElement.constructors.first)}]');
   classBuffer.writeln(');');
-  //////
-  if (initMethodIndex != -1) {
-    classBuffer.writeln('final res = await receivePort.first;');
-    classBuffer.writeln('if (res is IsolateGeneratorError) {');
-    classBuffer.writeln(
-      'Error.throwWithStackTrace(res.error, res.stackTrace);',
-    );
-    classBuffer.writeln('}');
-    classBuffer.writeln(' _sender = res;');
-  } else {
-    classBuffer.writeln('_sender = await receivePort.first;');
-  }
-  //////
+
+  classBuffer.writeln('_sender = await receivePort.first;');
 
   classBuffer.writeln('isolate.addOnExitListener(exitRecivePort.sendPort);');
 

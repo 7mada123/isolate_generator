@@ -10,8 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter 
-  isolate_generator_annotation:
-    path: ../isolate_generator_annotation
+  isolate_generator_annotation: ^0.0.6
 
   build:
   source_gen:
@@ -22,8 +21,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ">=2.0.0"
 
-  build_test:
-  build_runner:
+  build_runner: ">= 2.3.2"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

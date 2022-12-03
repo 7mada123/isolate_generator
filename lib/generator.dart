@@ -1,6 +1,9 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
+import 'dart:collection';
+
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:isolate_generator_annotation/isolate_generator_annotation.dart';
 import 'package:source_gen/source_gen.dart';
@@ -31,12 +34,20 @@ class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
     if (isSharedIsolate) {
       final sharedIsolate = annotation.read("sharedIsolate").objectValue;
 
-      final String key = sharedIsolate.getField("isolateKey")!.toStringValue()!;
+      final Set<DartType> sharedInstanse = HashSet();
+
+      for (var field in element.fields)
+        for (ElementAnnotation meta in field.metadata)
+          if (meta.element?.displayName == "FromIsolate")
+            sharedInstanse.add(field.declaration.type);
+
+      final String key = sharedIsolate.getField("isolateId")!.toStringValue()!;
       final SharedIsolateElement sharedIsolateElement =
           SharedIsolateElement.generate(
         classElement: element,
         sharedIsolate: sharedIsolate,
         annotation: annotation,
+        sharedInstanse: sharedInstanse,
       );
 
       final int count = sharedIsolate.getField("classCount")!.toIntValue()!;

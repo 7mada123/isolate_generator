@@ -38,9 +38,9 @@ class MyClass {
     return a + b;
   }
 
-  Stream<int> streamRang(int count, {Set<int>? include}) async* {
+  Stream<int> streamRang({required int count}) async* {
     for (var i = 0; i < count; i++) {
-      if (include?.contains(i) ?? true) yield i;
+      yield i;
     }
   }
 }
@@ -70,70 +70,10 @@ the usage is the same as the default class with minor difference
   final sum = await myClass.sum(a, b);
   
   // stream from the isolate
-  myClass.streamRang(10).listen((event) {
+  myClass.streamRang(count: 10).listen((event) {
     print(event);
   });
 ```
-
-### initializing class with custom argument
-
-in case you have want to initialize your class with custom argument, let's say path for example
-
-you would need to do it with `init` method in the default class
-
-
-```dart
-@GenerateIsolate()
-class MyClass {
-  late final String path;
-
-  void init({required String path}) {
-    this.path = path;
-  }
-}
-```
-
-and then your `init` method will be mapped to the generated class
-
-```dart
-  final myClass = MyClassIsolate();
-  
-  Directory tempDir = await getTemporaryDirectory();
-  String tempPath = tempDir.path;
-
-  // initialize the isolate and the default class with the provided path
-  await myClass.init(path: tempPath);
-```
-
-> class constructor isn't supported, only initialize your classes through `init` method
-
-### Communications between isolates
-
-to communicate between isolates simply use the genrated class with the new one you want to genrate, and that's it
-
-```dart
-@GenerateIsolate()
-// the new class you want to run inside isolate
-class MyNewClass {
-  // the generated class that already run inside an isolate
-  final genratedClass = MyClassIsolate();
-
-  Future<void> init() async {
-    //..your initialization code..//
-
-    await genratedClass.init();
-  }
-
-  Future<void> ss() async {
-    //..your logic..//
-
-    // invoke a method from this isolate on the other isolate
-    await genratedClass.createFile("fileName");
-  }
-}
-```
-
-> Whenever you call `genratedClass.init()` method in the main isolate or any other isolate If there is an already running isolate instance for `genratedClass`, it will be used instead of spawning a new isolate.
 
 ### Generator arguments
 
@@ -157,21 +97,68 @@ class MyClass {
 
 this will tell the generated class to extend the default class and override it's methods
 
-> you need to make sure that all methods in the default class return `Future<T>` and/or `Stream<T>`, and also you have to provide `init` method even if the class does not need initialization to get the same behaviors from the generated class
+> you need to make sure that all methods in the default class return `Future<T>` and/or `Stream<T>` to get the same behaviors from the generated class
 
 #### sharedIsolate
 
 if you want to run multiple classes in the same isolate while writing the code for each class in a separate file you can use `sharedIsolate` argument
 
-to use it all the classes should be in a library, to see the implementation please take a look at the [shared_isolate_example](https://github.com/7mada123/isolate_generator/tree/main/example/lib/shared_isolate_example)
+to use it all the classes should be in a library, to see the implementation take a look at the [shared_isolate_example](https://github.com/7mada123/isolate_generator/tree/main/example/lib/shared_isolate_example)
 
 > this isn't for communication between isolates but for sharing the same isolate between different class so you don't end up spawning different isolate for each simple class
+
+### Communications between isolates
+
+to communicate between isolates simply use the genrated class with the new one you want to genrate, and that's it
+
+```dart
+@GenerateIsolate()
+// the new class you want to run inside isolate
+class MyNewClass {
+  // the generated class that already run inside an isolate
+  final genratedClass = MyClassIsolate();
+
+  Future<void> initMyClassIsolateIsolate() async {
+    //..your initialization code..//
+
+    await genratedClass.init();
+  }
+
+  Future<void> ss() async {
+    //..your logic..//
+
+    // invoke a method from this isolate on the other isolate
+    await genratedClass.createFile("fileName");
+  }
+}
+```
+
+> Whenever you call `genratedClass.init()` method in the main isolate or any other isolate If there is an already running isolate instance for `genratedClass`, it will be used instead of spawning a new isolate.
+
+in case of communication between different classes that share the same isolate `sharedIsolate` you can pass the instance through the constructor and annotate the class instance with `FromIsolate`
+```dart
+@GenerateIsolate(sharedIsolate: SharedIsolate(2, 2, "my_shared_isolate"))
+class MySecoundClass {
+  // since this class will share the same isolate we can just pass the instance from the isolate
+  @FromIsolate()
+  final MyFirstClass first;
+
+  MySecoundClass(this.first);
+
+  int printValue(int n)  {
+    // First is already running in the same isolate so we can use it directly
+    return first.calculate(n);
+  }
+}
+```
+
+`MyFirstClass` instance will be passed when initializing the isolate for`MySecoundClass`, however you have to make sure that `MyFirstClass` is initialized before using it in `MySecoundClass`
+
+> when you use `FromIsolate` annotation, even if you make the filed nullable `final MyFirstClass? first` the instance will be passed inside the isolate so you don't have to pass it when initializing an a genrated class when using `isSameType`
 
 ## Limitation
 
 - Have the same `Isolate` limitation
-
-- class constructor isn't supported
 
 - the generator will only care about public functions/methods however you can use private functions and local variables internally without any issues
 
@@ -208,4 +195,4 @@ final int val = await myClass.getVal();
 
 ### Example app
 
-The [example](https://github.com/7mada123/isolate_generator/tree/main/example) directory has a sample application that uses this plugin.
+The [example](https://github.com/7mada123/isolate_generator/tree/main/example) directory has a sample application that uses this package.

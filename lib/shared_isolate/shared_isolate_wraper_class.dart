@@ -1,6 +1,6 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
-import 'package:isolate_generator/shared_isolate/shared_isolate_helper.dart';
+import 'package:isolate_generator/shared_isolate/shared_isolate_element.dart';
 import 'package:source_gen/source_gen.dart';
 
 import '../helpers.dart';

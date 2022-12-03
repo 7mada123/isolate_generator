@@ -11,8 +11,8 @@ import 'package:source_gen/source_gen.dart';
 import './helpers.dart';
 import './isolate_entry_point.dart';
 import './isolate_wraper_class.dart';
+import './shared_isolate/shared_isolate_element.dart';
 import './shared_isolate/shared_isolate_entry_point.dart';
-import './shared_isolate/shared_isolate_helper.dart';
 import './shared_isolate/shared_isolate_wraper_class.dart';
 
 class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {

@@ -6,7 +6,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 
-import './shared_isolate_helper.dart';
+import './shared_isolate_element.dart';
 import '../helpers.dart';
 
 void writeSharedIsolateEntryPoint(
@@ -133,7 +133,7 @@ void writeSharedIsolateEntryPoint(
     final String constructorsArg = element.classElement.constructors.isNotEmpty
         ? constructorParametersValue(
             element.classElement.constructors.first,
-            1,
+            2,
             replace: innerInstances,
           )
         : "";

@@ -345,20 +345,20 @@ Future<void> _mysharedisolate(final SendPort isolateMainPortSender) async {
     switch (id) {
       case 1:
         instance1 = First(
-          message[1],
           message[2],
+          message[3],
         );
         sendPort.send(port1.sendPort);
         break;
       case 2:
         instance2 = Secound(
-          message[1],
+          message[2],
         );
         sendPort.send(port2.sendPort);
         break;
       case 3:
         instance3 = Thrid(
-          id: message[1],
+          id: message[2],
           first: instance1,
         );
         sendPort.send(port3.sendPort);

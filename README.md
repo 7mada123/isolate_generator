@@ -103,7 +103,7 @@ this will tell the generated class to extend the default class and override it's
 
 if you want to run multiple classes in the same isolate while writing the code for each class in a separate file you can use `sharedIsolate` argument
 
-to use it all the classes should be in a library, to see the implementation take a look at the [shared_isolate_example](https://github.com/7mada123/isolate_generator/tree/main/example/lib/shared_isolate_example)
+to use it all the classes should be in a library, to see the implementation take a look at [shared_isolate_example](https://github.com/7mada123/isolate_generator/tree/main/example/lib/shared_isolate_example)
 
 > this isn't for communication between isolates but for sharing the same isolate between different class so you don't end up spawning different isolate for each simple class
 
@@ -135,7 +135,7 @@ class MyNewClass {
 
 > Whenever you call `genratedClass.init()` method in the main isolate or any other isolate If there is an already running isolate instance for `genratedClass`, it will be used instead of spawning a new isolate.
 
-in case of communication between different classes that share the same isolate `sharedIsolate` you can pass the instance through the constructor and annotate the class instance with `FromIsolate`
+in case of communication between different classes that share the same isolate `sharedIsolate` you can pass the instance through the constructor and annotate the class filed with `FromIsolate`
 ```dart
 @GenerateIsolate(sharedIsolate: SharedIsolate(2, 2, "my_shared_isolate"))
 class MySecoundClass {
@@ -154,7 +154,7 @@ class MySecoundClass {
 
 `MyFirstClass` instance will be passed when initializing the isolate for`MySecoundClass`, however you have to make sure that `MyFirstClass` is initialized before using it in `MySecoundClass`
 
-> when you use `FromIsolate` annotation, even if you make the filed nullable `final MyFirstClass? first` the instance will be passed inside the isolate so you don't have to pass it when initializing an a genrated class when using `isSameType`
+> when you use `FromIsolate` annotation, even if you make the filed nullable `final MyFirstClass? first` the instance will be passed inside the isolate so you don't have to pass it when initializing the genrated class when using `isSameType`
 
 ## Limitation
 

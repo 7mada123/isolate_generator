@@ -1,6 +1,6 @@
 name: isolate_generator
 description: flutter and dart code generator package for generating Isolate code for your classes.
-version: 0.0.5+1
+version: 0.0.5+2
 repository: https://github.com/7mada123/isolate_generator
 
 platforms:
@@ -12,7 +12,7 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
-  isolate_generator_annotation: ^0.0.6
+  isolate_generator_annotation: ">=0.0.6"
 
   build: ">=2.3.1 < 3.0.0"
   source_gen: ">=1.2.6 < 2.0.0"

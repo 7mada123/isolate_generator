@@ -2,7 +2,7 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 
-String functionParameters(final MethodElement method) {
+String functionParameters(final ExecutableElement method) {
   String arg = "";
   bool hasNamed = false;
 

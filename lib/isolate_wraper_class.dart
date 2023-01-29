@@ -87,7 +87,7 @@ void writeIsolateWarperClass(
   //init isolate ////////////////
 
   // class elements warping
-  for (var method in classElement.methods) {
+  for (var method in [...classElement.methods, ...classElement.accessors]) {
     if (method.name == 'init' || method.name.startsWith('_')) continue;
 
     String argToPass = "'${method.name}',receivePort.sendPort,";
@@ -101,8 +101,13 @@ void writeIsolateWarperClass(
     if (isSameType) classBuffer.writeln('@override');
 
     if (method.returnType.isDartAsyncStream) {
-      classBuffer.writeln('${method.returnType} ${method.name}($arg) {');
-
+      classBuffer.writeln(
+        method is MethodElement
+            ? '${method.returnType} ${method.name}($arg) {'
+            : (method as PropertyAccessorElement).isGetter
+                ? '${method.returnType} get ${method.name} {'
+                : 'set ${method.name}($arg) {',
+      );
       classBuffer.writeln('final receivePort = ReceivePort();');
 
       classBuffer.writeln('_sender.send(');
@@ -165,7 +170,11 @@ void writeIsolateWarperClass(
       }
 
       classBuffer.writeln(
-        '$returnType ${method.name}($arg) async {',
+        method is MethodElement
+            ? '$returnType ${method.name}($arg) async {'
+            : (method as PropertyAccessorElement).isGetter
+                ? '$returnType get ${method.name} async {'
+                : 'set ${method.name}($arg) async {',
       );
 
       classBuffer.writeln('final receivePort = ReceivePort();');

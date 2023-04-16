@@ -79,8 +79,6 @@ class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
       return "";
     }
 
-    final bool isSameType = annotation.read("isSameType").boolValue;
-
     final ClassElement classElement = element;
 
     final classBuffer = StringBuffer();
@@ -91,7 +89,8 @@ class IsolateGenerator extends GeneratorForAnnotation<GenerateIsolate> {
       classBuffer,
       classElement,
       isolateFuncName,
-      isSameType,
+      annotation.read("isSameType").boolValue,
+      annotation.read("errorsAreFatal").boolValue,
     );
 
     writeIsolateEntryPoint(classBuffer, classElement, isolateFuncName);

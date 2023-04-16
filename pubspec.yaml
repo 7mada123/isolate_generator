@@ -12,7 +12,8 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
-  isolate_generator_annotation: ">=0.0.6"
+  isolate_generator_annotation:
+    path: ../isolate_generator_annotation
 
   build: ">=2.3.1 < 3.0.0"
   source_gen: ">=1.2.6 < 2.0.0"

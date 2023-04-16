@@ -21,9 +21,13 @@ class MyClassIsolate {
     }
     final ReceivePort receivePort = ReceivePort();
     final ReceivePort exitRecivePort = ReceivePort();
-    isolate = await Isolate.spawn<List<dynamic>>(_myclassisolate, [
-      receivePort.sendPort,
-    ]);
+    isolate = await Isolate.spawn<List<dynamic>>(
+      _myclassisolate,
+      [
+        receivePort.sendPort,
+      ],
+      errorsAreFatal: false,
+    );
     _sender = await receivePort.first;
     isolate.addOnExitListener(exitRecivePort.sendPort);
     exitRecivePort.listen((message) {
@@ -82,12 +86,65 @@ class MyClassIsolate {
     );
     return controller.stream;
   }
+
+  Stream<void> getStream() {
+    final receivePort = ReceivePort();
+    _sender.send([
+      'getStream',
+      receivePort.sendPort,
+    ]);
+    final StreamController<void> controller = StreamController();
+    receivePort.listen(
+      (event) {
+        if (event is IsolateGeneratorStreamCompleted) {
+          controller.close();
+          receivePort.close();
+          return;
+        }
+        if (event is IsolateGeneratorError) {
+          controller.addError(event.error, event.stackTrace);
+          controller.close();
+          receivePort.close();
+          return;
+        }
+        controller.add(null);
+      },
+    );
+    return controller.stream;
+  }
+
+  Future<int> getPreviousNumber() async {
+    final receivePort = ReceivePort();
+    _sender.send([
+      'getPreviousNumber',
+      receivePort.sendPort,
+    ]);
+    final res = await receivePort.first;
+    receivePort.close();
+    if (res is IsolateGeneratorError) {
+      Error.throwWithStackTrace(res.error, res.stackTrace);
+    }
+    return res;
+  }
+
+  Future<int> geNextNumber() async {
+    final receivePort = ReceivePort();
+    _sender.send([
+      'geNextNumber',
+      receivePort.sendPort,
+    ]);
+    final res = await receivePort.first;
+    receivePort.close();
+    if (res is IsolateGeneratorError) {
+      Error.throwWithStackTrace(res.error, res.stackTrace);
+    }
+    return res;
+  }
 }
 
 Future<void> _myclassisolate(final List<dynamic> message) async {
   final ReceivePort port = ReceivePort();
   final MyClass instance = MyClass();
-  message[0].send(port.sendPort);
   void mainPortListener(final message) async {
     final String key = message[0];
     final SendPort sendPort = message[1];
@@ -112,6 +169,23 @@ Future<void> _myclassisolate(final List<dynamic> message) async {
             sendPort.send(const IsolateGeneratorStreamCompleted());
           });
           break;
+        case 'getStream':
+          instance.getStream().listen((event) {
+            sendPort.send(null);
+          }, onError: (e, s) {
+            sendPort.send(IsolateGeneratorError(e, s));
+          }, onDone: () {
+            sendPort.send(const IsolateGeneratorStreamCompleted());
+          });
+          break;
+        case 'getPreviousNumber':
+          final res = instance.getPreviousNumber();
+          sendPort.send(res);
+          break;
+        case 'geNextNumber':
+          final res = instance.geNextNumber();
+          sendPort.send(res);
+          break;
       }
     } catch (e, s) {
       sendPort.send(IsolateGeneratorError(e, s));
@@ -119,4 +193,5 @@ Future<void> _myclassisolate(final List<dynamic> message) async {
   }
 
   port.listen(mainPortListener);
+  message[0].send(port.sendPort);
 }

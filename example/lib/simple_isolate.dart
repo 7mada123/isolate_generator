@@ -5,7 +5,7 @@ import 'package:isolate_generator_annotation/isolate_generator_annotation.dart';
 part 'simple_isolate.g.dart';
 
 @GenerateIsolate()
-class MyClass {
+class MyClass extends MyClassInterFace with MyClassHelper {
   int fib(int n) {
     if (n <= 1) return n;
 
@@ -17,4 +17,20 @@ class MyClass {
       yield fib(i);
     }
   }
+
+  final StreamController<void> _streamController = StreamController();
+
+  Stream<void> getStream() {
+    return _streamController.stream;
+  }
+}
+
+abstract class MyClassInterFace {
+  int number = 0;
+
+  int geNextNumber() => ++number;
+}
+
+mixin MyClassHelper on MyClassInterFace {
+  int getPreviousNumber() => --number;
 }

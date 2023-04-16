@@ -1,6 +1,7 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 
 import './helpers.dart';
@@ -10,6 +11,7 @@ void writeIsolateWarperClass(
   final ClassElement classElement,
   final String isolateFuncName,
   final bool isSameType,
+  final bool errorsAreFatal,
 ) {
   classBuffer.writeln(
     'class ${classElement.name}Isolate${isSameType ? " extends ${classElement.name}" : ""}{',
@@ -56,7 +58,7 @@ void writeIsolateWarperClass(
   classBuffer.writeln('isolate = await Isolate.spawn<List<dynamic>>(');
   classBuffer.writeln('$isolateFuncName,');
   classBuffer.writeln(
-      '[receivePort.sendPort,${constructorParametersValueList(classElement.constructors.first)}]');
+      '[receivePort.sendPort,${constructorParametersValueList(classElement.constructors.first)}],errorsAreFatal: $errorsAreFatal,');
   classBuffer.writeln(');');
 
   classBuffer.writeln('_sender = await receivePort.first;');
@@ -86,8 +88,21 @@ void writeIsolateWarperClass(
   classBuffer.writeln('}');
   //init isolate ////////////////
 
+  final List<MethodElement> methods = [];
+
+  methods.addAll(classElement.methods);
+
+  for (InterfaceType mixinClass in classElement.mixins)
+    methods.addAll(mixinClass.methods);
+
+  for (InterfaceType mixinClass in classElement.interfaces)
+    methods.addAll(mixinClass.methods);
+
+  if (classElement.supertype != null)
+    methods.addAll(classElement.supertype!.methods);
+
   // class elements warping
-  for (var method in classElement.methods) {
+  for (var method in methods) {
     if (method.name == 'init' || method.name.startsWith('_')) continue;
 
     String argToPass = "'${method.name}',receivePort.sendPort,";
@@ -143,7 +158,8 @@ void writeIsolateWarperClass(
 
       classBuffer.writeln('}');
 
-      classBuffer.writeln('controller.add(event);');
+      classBuffer.writeln(
+          'controller.add(${method.returnType.toString() == "Stream<void>" ? "null" : "event"});');
 
       classBuffer.writeln('},');
 

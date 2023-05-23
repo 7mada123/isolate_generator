@@ -47,16 +47,22 @@ void writeIsolateEntryPoint(
     for (InterfaceType mixinClass in classElement.interfaces)
       methods.addAll(mixinClass.methods);
 
-    if (classElement.supertype != null)
-      methods.addAll(classElement.supertype!.methods);
+    // if (classElement.supertype != null)
+    //   methods.addAll(classElement.supertype!.methods);
 
     for (var method in methods) {
       if (method.name == 'init' || method.name.startsWith('_')) continue;
 
-      final bool isFuncVoid = method.returnType.toString().contains('void');
+      final String returnTypeStr = method.returnType.toString();
+
+      final bool isFuncVoid = returnTypeStr == 'void' ||
+          returnTypeStr == "Future<void>" ||
+          returnTypeStr == "FutureOr<void>";
+
       final String arg = functionParametersValue(method, 2);
 
       classBuffer.writeln("case '${method.name}':");
+
       if (method.returnType.isDartAsyncStream) {
         classBuffer.writeln("instance.${method.name}($arg).listen((event){");
         classBuffer.writeln(

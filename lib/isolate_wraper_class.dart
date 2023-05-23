@@ -98,8 +98,8 @@ void writeIsolateWarperClass(
   for (InterfaceType mixinClass in classElement.interfaces)
     methods.addAll(mixinClass.methods);
 
-  if (classElement.supertype != null)
-    methods.addAll(classElement.supertype!.methods);
+  // if (classElement.supertype != null)
+  //   methods.addAll(classElement.supertype!.methods);
 
   // class elements warping
   for (var method in methods) {
